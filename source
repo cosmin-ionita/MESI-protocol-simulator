@@ -1,0 +1,128 @@
+using System;
+using System.Linq;
+
+namespace SM_MESI
+{
+    class ProcState
+    {
+        public int id;
+        public char state;
+        public bool hasValue;
+    }
+
+    class MainClass
+    {
+        static ProcState[] states;
+
+        private static void InitStates() 
+        {
+            int i = 1;
+
+            foreach(var proc in states)
+            {
+                proc.id = i;
+                proc.state = 'I';
+                proc.hasValue = false;
+
+                i++;
+            }
+        }
+
+        private static void PrintStates(string magState, string dataSource)
+        {
+            foreach(var proc in states) 
+            {
+                Console.Write(proc.state + " ");
+            }
+
+            Console.WriteLine("Actiune Magistrala: " + magState);
+            Console.WriteLine("Sursa date: " + dataSource);
+        }
+
+        private static void PerformWrite(int processor) 
+        {
+			foreach (var proc in states)
+			{
+                if (proc.id == processor)
+                {
+                    proc.state = 'M';
+                    proc.hasValue = true;
+                }
+                else
+                {
+                    proc.state = 'I';
+                    proc.hasValue = false;
+                }
+			}
+        }
+
+        private static void PerformRead(int processor)
+        {
+            if(states[processor].state == 'M' || states[processor].state == 'S' || states[processor].state == 'E')
+            {
+                PrintStates("-", "-");
+            }
+            else if(states[processor].state == 'I')
+            {
+                var id = states.Where(st => st.hasValue == true).FirstOrDefault();
+
+                if (id == null)
+                {
+                    states[processor].state = 'E';
+                    PrintStates("BusRd", "Mem");
+                }
+                else if(states[id.id].state == 'M')
+                {
+                    states[processor].state = 'S';
+                    states[id.id].state = 'S';
+                    PrintStates("BusRd", "Cache" + id.id);
+                }
+				else if (states[id.id].state == 'S')
+				{
+					states[processor].state = 'S';
+					PrintStates("Flush", "Cache" + id.id);
+				}
+            }
+        }
+
+        public static void Main(string[] args)
+        {
+            int N = 0;
+
+            Console.WriteLine("Number of processors: ");
+            var key = Console.ReadKey();
+
+            N = Int32.Parse(key.ToString());
+
+            states = new ProcState[N];
+
+            InitStates();
+
+            PrintStates("-", "-");
+
+            while(true)
+            {
+                Console.WriteLine("Id procesor: ");
+
+				var pressedKey = Console.ReadKey();
+				var processor = Int32.Parse(pressedKey.ToString());
+
+                Console.WriteLine("Actiune: ");
+
+				pressedKey = Console.ReadKey();
+				var action = pressedKey.ToString();
+
+                if(action == "W")
+                {
+                    PerformWrite(processor);
+                    PrintStates("BusRdX", "Flush");
+                }
+                else if(action == "R")
+                {
+                    PerformRead(processor);     // has printStates inside it
+                }
+            }
+        }
+    }
+}
+
